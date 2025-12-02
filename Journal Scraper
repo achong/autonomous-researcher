@@ -1,0 +1,378 @@
+print("Alistair Chong 2025") 
+
+import os
+import requests
+from tqdm import tqdm
+import csv
+
+SCOPUS_API_KEY = "27aabb40a6bbf5379b21747080b6eb82"
+ELSEVIER_API_KEY = "27aabb40a6bbf5379b21747080b6eb82"
+CORE_API_KEY = "M6DcYI4XuNiFOUvaJx1dWCjTnSEwZ5Pb"
+IEEE_API_KEY = "yhqyem6qnbr3utp9d5yps9ke"
+UNPAYWALL_EMAIL = "##"  # Replace with your real email
+
+DEFAULT_SAVE_PATH = r"INSERT SAVE PATH"
+
+JOURNAL_LIST = [
+    "Academy of Management Annals",
+    "Academy of Management Discoveries",
+    "Academy of Management Journal",
+    "Academy of Management Learning and Education",
+    "Academy of Management Perspectives",
+    "Academy of Management Review",
+    "ACM Transactions on Computer-Human Interaction",
+    "Acta Psychologica",
+    "Administrative Science Quarterly",
+    "Advances in Experimental Social Psychology",
+    "AIS Transactions on Human-Computer Interaction",
+    "Alternatives: global, local, political",
+    "American Business Review",
+    "American Journal of Sociology",
+    "American Psychologist",
+    "American Sociological Review",
+    "Annals of Operations Research",
+    "Annual Review of Organizational Psychology and Organizational Behavior",
+    "Annual Review of Psychology",
+    "Annual Review of Sociology",
+    "Applied Ontology",
+    "Applied Psychology: An International Review",
+    "Asia Pacific Journal of Management",
+    "Australasian Journal of Environmental Management",
+    "Australasian Journal of Information Systems",
+    "Behaviour and Information Technology",
+    "British Journal of Educational Technology",
+    "British Journal of Management",
+    "British Journal of Psychology",
+    "British Journal of Social Psychology",
+    "British Journal of Sociology",
+    "Business & Information Systems Engineering",
+    "Business and Society",
+    "Business Ethics Quarterly",
+    "Business Strategy and the Environment",
+    "California Management Review",
+    "Cognitive Psychology",
+    "Communication Monographs",
+    "Communications of the ACM",
+    "Communications of the Association for Information Systems",
+    "Computers and Security",
+    "Computers in Human Behavior",
+    "Corporate Governance: an international review",
+    "Data and Knowledge Engineering",
+    "Data Base for Advances in Information Systems",
+    "Decision",
+    "Decision Support Systems",
+    "Electronic Commerce Research",
+    "Electronic Markets",
+    "Enterprise Information Systems",
+    "Entrepreneurship and Regional Development",
+    "Entrepreneurship Theory and Practice",
+    "Ethics: an international journal of social, political, and legal philosophy",
+    "European Journal of Information Systems",
+    "European Journal of Operational Research",
+    "European Journal of Personality",
+    "European Journal of Social Psychology",
+    "European Journal of Sociology",
+    "European Journal of Work and Organizational Psychology",
+    "Family Business Review",
+    "Gender and Society",
+    "Global Journal of Flexible Systems Management",
+    "Global Strategy Journal",
+    "Government Information Quarterly",
+    "Group & Organization Management",
+    "Group Decision and Negotiation",
+    "Harvard Business Review",
+    "Health Care Management Review",
+    "Human Communication Research",
+    "Human Performance",
+    "Human Relations",
+    "Human-Computer Interaction",
+    "IBM Systems Journal",
+    "Industrial and Corporate Change",
+    "Industrial Management & Data Systems",
+    "Information & Management",
+    "Information and Organization",
+    "Information and Software Technology",
+    "Information Systems Frontiers",
+    "Information Systems Journal",
+    "Information Systems Research",
+    "Information Technology & People",
+    "Information, Communication & Society",
+    "International Business Review",
+    "International Journal of Cooperative Information Systems",
+    "International Journal of Electronic Commerce",
+    "International Journal of Information Management",
+    "International Journal of Intercultural Relations",
+    "International Journal of Management Reviews",
+    "International Journal of Medical Informatics",
+    "International Journal of Operations & Production Management",
+    "International Journal of Production Economics",
+    "International Journal of Production Research",
+    "International Small Business Journal",
+    "Internet Research",
+    "Journal of Applied Psychology",
+    "Journal of Behavioral Decision Making",
+    "Journal of Business and Psychology",
+    "Journal of Business Ethics",
+    "Journal of Business Venturing",
+    "Journal of Business Venturing Insights",
+    "Journal of Cleaner Production",
+    "Journal of Computer Information Systems",
+    "Journal of Cross-Cultural Psychology",
+    "Journal of Database Management",
+    "Journal of Enterprise Information Management",
+    "Journal of Environmental Management",
+    "Journal of Experimental Psychology: Applied",
+    "Journal of Experimental Psychology: General",
+    "Journal of Experimental Psychology: Learning, Memory, and Cognition",
+    "Journal of Experimental Social Psychology",
+    "Journal of Global Information Management",
+    "Journal of Information Technology",
+    "Journal of Information Technology Theory and Application",
+    "Journal of Innovation & Knowledge",
+    "Journal of International Business Studies",
+    "Journal of International Management",
+    "Journal of Knowledge Management",
+    "Journal of Management",
+    "Journal of Management in Engineering",
+    "Journal of Management Information Systems",
+    "Journal of Management Inquiry",
+    "Journal of Management Studies",
+    "Journal of Occupational and Organizational Psychology",
+    "Journal of Operations Management",
+    "Journal of Optimization Theory and Applications",
+    "Journal of Organizational Behavior",
+    "Journal of Organizational Computing and Electronic Commerce",
+    "Journal of Personality",
+    "Journal of Personality and Social Psychology",
+    "Journal of Personality Assessment",
+    "Journal of Policy Analysis and Management",
+    "Journal of Research in Personality",
+    "Journal of Service Management",
+    "Journal of Small Business Management",
+    "Journal of Social Issues",
+    "Journal of Social Policy",
+    "Journal of Strategic Information Systems",
+    "Journal of the American Medical Informatics Association",
+    "Journal of the Association for Information Science and Technology",
+    "Journal of the Association for Information Systems",
+    "Journal of the Operational Research Society",
+    "Journal of World Business",
+    "Knowledge Management Research and Practice",
+    "Knowledge-Based Systems",
+    "Long Range Planning",
+    "Management and Organization Review",
+    "Management International Review",
+    "Management Learning",
+    "Management Science",
+    "Mathematics of Operations Research",
+    "MIS Quarterly",
+    "MIS Quarterly Executive",
+    "MIT Sloan Management Review",
+    "Multivariate Behavioral Research",
+    "Nonprofit and Voluntary Sector Quarterly",
+    "Operations Research",
+    "Operations Research Letters",
+    "Organization & Environment",
+    "Organization Science",
+    "Organization Studies",
+    "Organization",
+    "Organizational Behavior and Human Decision Processes",
+    "Organizational Dynamics",
+    "Organizational Psychology Review",
+    "Organizational Research Methods",
+    "Personal and Ubiquitous Computing",
+    "Personality and Individual Differences",
+    "Personality and Social Psychology Bulletin",
+    "Personality and Social Psychology Review",
+    "Personnel Psychology",
+    "Production Planning and Control",
+    "Psychological Bulletin",
+    "Psychological Research",
+    "Psychological Review",
+    "Psychological Science",
+    "Psychology of Women Quarterly",
+    "Public Management Review",
+    "Quarterly Journal of Experimental Psychology",
+    "R&D Management",
+    "Research in Organizational Behavior",
+    "Research in the Sociology of Organizations",
+    "Research Policy",
+    "Research-Technology Management",
+    "Scandinavian Journal of Information Systems",
+    "Sex Roles",
+    "Small Business Economics",
+    "Small Group Research",
+    "Social Forces",
+    "Social Problems",
+    "Sociological Inquiry",
+    "Sociological Methodology",
+    "Sociological Methods & Research",
+    "Sociological Theory",
+    "Sociology",
+    "Strategic Entrepreneurship Journal",
+    "Strategic Management Journal",
+    "Strategic Organization",
+    "Strategy Science",
+    "Stress and Health",
+    "Structural Equation Modelling: A Multidisciplinary Journal",
+    "Technovation",
+    "The Information Society",
+    "The Leadership Quarterly",
+    "The Sociological Review",
+    "Theory, Culture and Society"
+]
+
+
+def prompt_for_search_terms():
+    print("Enter search terms or topic - use quotation marks for single search terms (one per line, blank line to finish):")
+    terms = []
+    while True:
+        line = input().strip()
+        if not line:
+            break
+        terms.append(line)
+    if not terms:
+        terms = ["digital culture"]  # Default term
+    return terms
+
+def prompt_for_journals():
+    print("Enter journal names (one per line, blank line to finish, or just press Enter to use default list):")
+    journals = []
+    while True:
+        line = input().strip()
+        if not line:
+            break
+        journals.append(line)
+    if not journals:
+        journals = JOURNAL_LIST
+    return journals
+
+def prompt_for_save_path():
+    path = input(f"Enter the folder path to save PDFs (default: {DEFAULT_SAVE_PATH}): ").strip()
+    if not path:
+        path = DEFAULT_SAVE_PATH
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
+
+def scopus_search(query, journal, api_key, count=10):
+    url = "https://api.elsevier.com/content/search/scopus"
+    params = {
+        "query": f'TITLE-ABS-KEY({query}) AND SRCTITLE(\"{journal}\")',
+        "apiKey": api_key,
+        "count": count
+    }
+    headers = {"Accept": "application/json"}
+    resp = requests.get(url, params=params, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+def get_pdf_link_from_unpaywall(doi):
+    url = f"https://api.unpaywall.org/v2/{doi}?email={UNPAYWALL_EMAIL}"
+    try:
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("best_oa_location") and data["best_oa_location"].get("url_for_pdf"):
+                return data["best_oa_location"]["url_for_pdf"]
+    except Exception as e:
+        print(f"        Unpaywall error for DOI {doi}: {e}")
+    return None
+
+def download_pdf(url, save_folder, filename):
+    local_filename = os.path.join(save_folder, filename)
+    try:
+        with requests.get(url, stream=True, timeout=15) as r:
+            r.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        return local_filename
+    except Exception as e:
+        print(f"        Failed to download {url}: {e}")
+        return None
+
+def save_undownloaded_to_csv(undownloaded_articles, save_folder):
+    csv_path = os.path.join(save_folder, "undownloaded_articles.csv")
+    with open(csv_path, mode='w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Title", "Journal", "DOI", "Publisher Link"])
+        for art in undownloaded_articles:
+            writer.writerow([
+                art['title'],
+                art['journal'],
+                art['doi'] if art['doi'] else '',
+                art['publisher_link'] if art['publisher_link'] else ''
+            ])
+    print(f"\nUndownloaded articles saved to: {csv_path}")
+
+def main():
+    search_terms = prompt_for_search_terms()
+    journals = prompt_for_journals()
+    save_path = prompt_for_save_path()
+    undownloaded_articles = []
+
+    for term in search_terms:
+        print(f"\nSearch term: '{term}'")
+        for journal in journals:
+            print(f"  Searching {journal} in Scopus...")
+            try:
+                results = scopus_search(term, journal, SCOPUS_API_KEY, count=10)
+                entries = results.get("search-results", {}).get("entry", [])
+                if not entries:
+                    print(f"    No articles found.")
+                    continue
+                for entry in tqdm(entries, desc=f"    Processing articles from {journal}"):
+                    title = entry.get("dc:title", "untitled")
+                    doi = entry.get("prism:doi")
+                    publisher_link = f"https://doi.org/{doi}" if doi else entry.get("prism:url")
+                    if not doi:
+                        print(f"      No DOI for article: {title}")
+                        undownloaded_articles.append({
+                            "title": title,
+                            "journal": journal,
+                            "doi": None,
+                            "publisher_link": publisher_link
+                        })
+                        continue
+                    pdf_url = get_pdf_link_from_unpaywall(doi)
+                    if pdf_url:
+                        filename = f"{doi.replace('/', '_')}.pdf"
+                        downloaded = download_pdf(pdf_url, save_path, filename)
+                        if downloaded:
+                            print(f"      Saved: {downloaded}")
+                        else:
+                            print(f"      Could not download PDF for: {title}")
+                            undownloaded_articles.append({
+                                "title": title,
+                                "journal": journal,
+                                "doi": doi,
+                                "publisher_link": publisher_link
+                            })
+                    else:
+                        print(f"      No open-access PDF found for: {title}")
+                        undownloaded_articles.append({
+                            "title": title,
+                            "journal": journal,
+                            "doi": doi,
+                            "publisher_link": publisher_link
+                        })
+            except Exception as e:
+                print(f"    Error searching {journal}: {e}")
+
+    # Print and save summary at the end
+    if undownloaded_articles:
+        print("\nArticles you need to download manually:")
+        for art in undownloaded_articles:
+            print(f"- {art['title']} ({art['journal']})")
+            if art['doi']:
+                print(f"  DOI: {art['doi']}")
+                print(f"  Link: {art['publisher_link']}")
+            else:
+                print(f"  Publisher link: {art['publisher_link']}")
+        save_undownloaded_to_csv(undownloaded_articles, save_path)
+    else:
+        print("\nAll articles were downloaded as open-access PDFs.")
+
+if __name__ == "__main__":
+    main()
